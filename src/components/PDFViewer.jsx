@@ -98,13 +98,27 @@ const PDFViewer = ({ url, newsletterCount = 1, currentIndex = 0, onPrevious, onN
     // Use configured API base or default to relative path
     const API_BASE = import.meta.env.VITE_API_BASE || '/.netlify/functions';
 
-    // If API_BASE already includes .netlify/functions, don't duplicate it if the var is just the domain
-    // Safe heuristic: utilize the env var directly as the base for the function call
-    const proxyEndpoint = `${API_BASE}/pdf-proxy`;
+    let proxyUrl = url;
 
-    const proxyUrl = url?.startsWith('http')
-        ? `${proxyEndpoint}?url=${encodeURIComponent(url)}`
-        : url;
+    if (url) {
+        if (url.includes('res.cloudinary.com')) {
+            // Cloudinary Rewrite (Bypasses Lambda 6MB limit)
+            let apiOrigin = '';
+            try {
+                if (API_BASE.startsWith('http')) {
+                    apiOrigin = new URL(API_BASE).origin;
+                }
+            } catch (e) { console.warn('Invalid API_BASE', e); }
+
+            const cloudinaryPath = url.split('res.cloudinary.com')[1];
+            proxyUrl = `${apiOrigin}/cloudinary-proxy${cloudinaryPath}`;
+
+        } else if (url.startsWith('http')) {
+            // Lambda Proxy Fallback
+            const proxyEndpoint = `${API_BASE}/pdf-proxy`;
+            proxyUrl = `${proxyEndpoint}?url=${encodeURIComponent(url)}`;
+        }
+    }
 
     // Check cache
     const getCachedPDF = async (pdfUrl) => {
