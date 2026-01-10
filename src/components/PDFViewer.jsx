@@ -95,8 +95,15 @@ const PDFViewer = ({ url, newsletterCount = 1, currentIndex = 0, onPrevious, onN
 
     const minSwipeDistance = 50;
 
+    // Use configured API base or default to relative path
+    const API_BASE = import.meta.env.VITE_API_BASE || '/.netlify/functions';
+
+    // If API_BASE already includes .netlify/functions, don't duplicate it if the var is just the domain
+    // Safe heuristic: utilize the env var directly as the base for the function call
+    const proxyEndpoint = `${API_BASE}/pdf-proxy`;
+
     const proxyUrl = url?.startsWith('http')
-        ? `/.netlify/functions/pdf-proxy?url=${encodeURIComponent(url)}`
+        ? `${proxyEndpoint}?url=${encodeURIComponent(url)}`
         : url;
 
     // Check cache
