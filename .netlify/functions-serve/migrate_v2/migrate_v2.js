@@ -1,1 +1,0 @@
-module.exports = require('./schedule-project-main/netlify/functions/migrate_v2.js')

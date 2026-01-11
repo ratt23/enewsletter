@@ -1,1 +1,0 @@
-module.exports = require('./schedule-project-main/netlify/functions/newsletter-upsert.js')

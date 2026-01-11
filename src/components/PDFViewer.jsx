@@ -89,11 +89,41 @@ const PDFViewer = ({ url, newsletterCount = 1, currentIndex = 0, onPrevious, onN
     const [showLeftArrow, setShowLeftArrow] = useState(false);
     const [showRightArrow, setShowRightArrow] = useState(false);
 
-    // Swipe detection
-    const [touchStart, setTouchStart] = useState(null);
-    const [touchEnd, setTouchEnd] = useState(null);
+    // Auto-scale logic
+    const updateScale = (pdf) => {
+        if (!containerRef.current || !pdf) return;
 
-    const minSwipeDistance = 50;
+        const container = containerRef.current;
+        const padding = window.innerWidth < 768 ? 20 : 64;
+        const availableWidth = container.clientWidth - padding;
+        const availableHeight = container.clientHeight - padding;
+
+        pdf.getPage(pageNum).then(page => {
+            const viewport = page.getViewport({ scale: 1.0 });
+            const scaleX = availableWidth / viewport.width;
+            const scaleY = availableHeight / viewport.height;
+
+            // Adjust scale to fit width mainly, but respect height
+            let newScale = Math.min(scaleX, scaleY);
+
+            // If on mobile, prioritize width to make it readable
+            if (window.innerWidth < 768) {
+                newScale = scaleX;
+            }
+
+            setScale(Math.min(newScale, 2.0)); // Cap at 2x
+        });
+    };
+
+    useEffect(() => {
+        if (pdfDoc) {
+            updateScale(pdfDoc);
+
+            const handleResize = () => updateScale(pdfDoc);
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }
+    }, [pdfDoc, pageNum]);
 
     // Use configured API base or default to relative path
     const API_BASE = import.meta.env.VITE_API_BASE || '/.netlify/functions';
@@ -352,9 +382,9 @@ const PDFViewer = ({ url, newsletterCount = 1, currentIndex = 0, onPrevious, onN
             )}
 
             {/* Viewer Content */}
-            <div className="flex-1 overflow-auto bg-[#333] flex justify-center items-center p-4 md:p-8 relative group">
+            <div className="flex-1 overflow-auto bg-[#2e2e2e] flex justify-center items-start md:items-center relative group min-h-0">
                 {error && (
-                    <div className="bg-zinc-800 border border-zinc-700 p-8 rounded-2xl shadow-2xl max-w-md text-center">
+                    <div className="bg-zinc-800 border border-zinc-700 p-8 rounded-2xl shadow-2xl max-w-md text-center my-auto">
                         <div className="bg-red-900/30 p-4 rounded-full inline-block mb-4">
                             <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -365,10 +395,12 @@ const PDFViewer = ({ url, newsletterCount = 1, currentIndex = 0, onPrevious, onN
                     </div>
                 )}
 
-                <canvas
-                    ref={canvasRef}
-                    className={`shadow-2xl shadow-black/50 transition-all duration-500 ease-out ${loading || error ? 'opacity-0 hidden' : 'opacity-100'}`}
-                />
+                <div className="relative py-4 md:py-8">
+                    <canvas
+                        ref={canvasRef}
+                        className={`shadow-2xl shadow-black/70 transition-all duration-300 ease-out border border-white/5 ${loading || error ? 'opacity-0 hidden' : 'opacity-100'}`}
+                    />
+                </div>
 
                 {/* Click to view in fullscreen overlay */}
                 {!loading && !error && !isFullscreen && (

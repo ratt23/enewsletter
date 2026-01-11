@@ -1,1 +1,0 @@
-module.exports = require('./schedule-project-main/netlify/functions/update_device_schema.js')
