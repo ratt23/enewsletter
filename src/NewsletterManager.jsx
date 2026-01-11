@@ -1,42 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { newsletterAPI } from './api';
+import React from 'react';
 import PDFViewer from './components/PDFViewer';
-import { ChevronLeft, ChevronRight, Calendar, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
-const MONTHS = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-];
-
-export default function NewsletterManager() {
-    const [newsletters, setNewsletters] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [currentIndex, setCurrentIndex] = useState(0);
-
-    useEffect(() => {
-        loadNewsletters();
-    }, []);
-
-    async function loadNewsletters() {
-        try {
-            setLoading(true);
-            setError(null);
-            // Load all published newsletters (limit high enough to get all)
-            const data = await newsletterAPI.getArchive(1, 100, false);
-            setNewsletters(data.newsletters);
-
-            // Auto-select the latest (first) newsletter
-            if (data.newsletters.length > 0) {
-                setCurrentIndex(0);
-            }
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }
-
+export default function NewsletterManager({
+    newsletters,
+    loading,
+    error,
+    currentIndex,
+    setCurrentIndex,
+    reload
+}) {
     const currentNewsletter = newsletters[currentIndex];
 
     const goToPrevious = () => {
@@ -70,7 +43,7 @@ export default function NewsletterManager() {
                     <h3 className="text-xl font-bold text-white mb-2">Error</h3>
                     <p className="text-zinc-400 mb-4">{error}</p>
                     <button
-                        onClick={loadNewsletters}
+                        onClick={reload}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                     >
                         Coba Lagi
@@ -95,7 +68,7 @@ export default function NewsletterManager() {
     }
 
     return (
-        <div className="min-h-screen bg-zinc-900 flex flex-col">
+        <div className="min-h-[calc(100vh-160px)] bg-zinc-900 flex flex-col">
             {/* Embedded PDF Viewer - No Modal, Always Visible */}
             {currentNewsletter && currentNewsletter.pdf_url && (
                 <PDFViewer

@@ -1,12 +1,97 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import NewsletterManager from './NewsletterManager'
+import { newsletterAPI } from './api'
+import { X, Calendar, ChevronRight } from 'lucide-react'
 import './App.css'
 
 function App() {
-    const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [newsletters, setNewsletters] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    useEffect(() => {
+        loadNewsletters();
+    }, []);
+
+    async function loadNewsletters() {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await newsletterAPI.getArchive(1, 100, false);
+            setNewsletters(data.newsletters);
+
+            if (data.newsletters.length > 0) {
+                setCurrentIndex(0);
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const MONTHS = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    const getMonthName = (monthNum) => MONTHS[monthNum - 1] || monthNum;
 
     return (
         <div className="app-wrapper">
+            {/* Sidebar Overlay */}
+            {isMenuOpen && (
+                <div
+                    className="sidebar-overlay"
+                    onClick={() => setIsMenuOpen(false)}
+                />
+            )}
+
+            {/* Sidebar Archive */}
+            <aside className={`sidebar-archive ${isMenuOpen ? 'open' : ''}`}>
+                <div className="sidebar-header">
+                    <h2 className="sidebar-title">Arsip Newsletter</h2>
+                    <button
+                        className="close-sidebar-btn"
+                        onClick={() => setIsMenuOpen(false)}
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <div className="sidebar-content">
+                    {loading ? (
+                        <div className="sidebar-loading">Memuat...</div>
+                    ) : (
+                        <nav className="archive-list">
+                            {newsletters.map((item, index) => (
+                                <button
+                                    key={item.id}
+                                    className={`archive-item ${index === currentIndex ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setCurrentIndex(index);
+                                        setIsMenuOpen(false);
+                                    }}
+                                >
+                                    <div className="item-icon">
+                                        <Calendar size={18} />
+                                    </div>
+                                    <div className="item-info">
+                                        <span className="item-date">
+                                            {getMonthName(item.month)} {item.year}
+                                        </span>
+                                        <span className="item-title">{item.title}</span>
+                                    </div>
+                                    <ChevronRight size={16} className="item-arrow" />
+                                </button>
+                            ))}
+                        </nav>
+                    )}
+                </div>
+            </aside>
+
             {/* Header mirip jadwaldokter */}
             <header className="app-header">
                 <div className="header-top">
@@ -41,7 +126,14 @@ function App() {
             </header>
 
             <main className="main-content">
-                <NewsletterManager />
+                <NewsletterManager
+                    newsletters={newsletters}
+                    loading={loading}
+                    error={error}
+                    currentIndex={currentIndex}
+                    setCurrentIndex={setCurrentIndex}
+                    reload={loadNewsletters}
+                />
             </main>
 
             <footer className="app-footer">
